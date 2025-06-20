@@ -1,4 +1,4 @@
-# ✨ Smart Email Template Assistant (스마트 템플릿 어시스턴트)
+# ✨ Smart Email Template Assistant
 
 **나만의 이메일 템플릿을 스마트하게 관리하고 발송하는 데스크톱 애플리케이션**
 
