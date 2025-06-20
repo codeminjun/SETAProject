@@ -1,24 +1,19 @@
 # ✨ Smart Template Assistant (스마트 템플릿 어시스턴트)
 
-\<p align="center"\>
-\<strong\>나만의 이메일 템플릿을 스마트하게 관리하고 발송하는 데스크톱 애플리케이션\</strong\>
-\</p\>
+**나만의 이메일 템플릿을 스마트하게 관리하고 발송하는 데스크톱 애플리케이션**
 
-\<p align="center"\>
-\<img src="[https://img.shields.io/badge/Language-Java-orange?style=for-the-badge\&logo=java](https://www.google.com/search?q=https://img.shields.io/badge/Language-Java-orange%3Fstyle%3Dfor-the-badge%26logo%3Djava)" alt="Java"/\>
-\<img src="[https://img.shields.io/badge/Framework-Java%20Swing-blue?style=for-the-badge](https://www.google.com/search?q=https://img.shields.io/badge/Framework-Java%2520Swing-blue%3Fstyle%3Dfor-the-badge)" alt="Java Swing"/\>
-\<img src="[https://img.shields.io/badge/License-MIT-green?style=for-the-badge](https://www.google.com/search?q=https://img.shields.io/badge/License-MIT-green%3Fstyle%3Dfor-the-badge)" alt="License: MIT"/\>
-\</p\>
+<p align="center">
+  <img src="https://img.shields.io/badge/Language-Java-orange?style=for-the-badge&logo=java" alt="Java"/>
+  <img src="https://img.shields.io/badge/Framework-Java%20Swing-blue?style=for-the-badge" alt="Java Swing"/>
+  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"/>
+</p>
 
-\<p align="center"\>
-\<i\>단국대학교 모바일시스템공학과 2학년 전공 심화 프로젝트\</i\>
-\</p\>
+*단국대학교 모바일시스템공학과 2학년 전공 심화 프로젝트*
 
-\<br\>
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/751d3b01-576e-44d4-95ea-7a3ed14f77c5" width="700">
+</p>
 
-\<p align="center"\>
-\<img src="[https://github.com/user-attachments/assets/751d3b01-576e-44d4-95ea-7a3ed14f77c5](https://www.google.com/search?q=https://github.com/user-attachments/assets/751d3b01-576e-44d4-95ea-7a3ed14f77c5)" width="700"\>
-\</p\>
 
 ## 📖 프로젝트 개요
 
