@@ -10,10 +10,6 @@
 
 *단국대학교 모바일시스템공학과 2학년 전공 심화 프로젝트*
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/751d3b01-576e-44d4-95ea-7a3ed14f77c5" width="700">
-</p>
-
 
 ## 📖 프로젝트 개요
 
