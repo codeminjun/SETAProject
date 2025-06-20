@@ -2,13 +2,14 @@ package ui;
 
 import model.EmailTemplate;
 import model.TemplateManager;
-
+import javax.swing.border.TitledBorder;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.*;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -21,7 +22,8 @@ import java.util.stream.Collectors;
 /**
  * 메인 프레임 - Smart Template Assistant의 주 화면
  */
-public class MainFrame extends JFrame {
+// [수정] TemplateManager.TemplateChangeListener 인터페이스 구현
+public class MainFrame extends JFrame implements TemplateManager.TemplateChangeListener {
     private TemplateManager templateManager;
     private JTable templateTable;
     private DefaultTableModel tableModel;
@@ -43,6 +45,8 @@ public class MainFrame extends JFrame {
 
     public MainFrame() {
         templateManager = new TemplateManager();
+        templateManager.addChangeListener(this); // [추가] 템플릿 매니저에 리스너 등록
+
         initUI();
 
         // 초기 로드 시 테이블 정리
@@ -51,6 +55,14 @@ public class MainFrame extends JFrame {
             loadSettings();
         });
     }
+
+    // [추가] TemplateChangeListener 인터페이스 구현 메소드
+    @Override
+    public void onTemplatesChanged() {
+        // 데이터 모델이 변경될 때마다 UI를 새로고침합니다.
+        SwingUtilities.invokeLater(this::loadTemplates);
+    }
+
 
     public boolean isDarkMode() {
         return isDarkMode;
@@ -240,7 +252,7 @@ public class MainFrame extends JFrame {
             button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
             button.addActionListener(e -> {
-                fireEditingStopped();  // stopCellEditing() 대신 fireEditingStopped() 사용
+                fireEditingStopped();
                 SwingUtilities.invokeLater(() -> toggleFavorite(currentRow));
             });
         }
@@ -272,19 +284,10 @@ public class MainFrame extends JFrame {
         String title = (String) tableModel.getValueAt(row, 0);
         EmailTemplate template = findTemplateByTitle(title);
         if (template != null) {
-            // 즐겨찾기 상태 토글
             boolean newFavoriteStatus = !template.isFavorite();
             template.setFavorite(newFavoriteStatus);
             templateManager.updateTemplate(template);
-
-            // 해당 행만 업데이트 (전체 새로고침 대신)
-            tableModel.setValueAt(newFavoriteStatus, row, 2);
-            tableModel.setValueAt(newFavoriteStatus ? "★" : "☆", row, 3);
-
-            // 즐겨찾기 필터가 활성화된 경우에만 필터 재적용
-            if (favoriteCheckBox.isSelected()) {
-                filterTemplates();
-            }
+            // onTemplatesChanged가 호출되어 테이블이 자동으로 새로고침되므로 수동 업데이트 불필요
         }
     }
 
@@ -353,32 +356,19 @@ public class MainFrame extends JFrame {
     }
 
     private void loadTemplates() {
-        // 테이블 초기화
-        tableModel.setRowCount(0);
-
-        // 카테고리 콤보박스 업데이트
         updateCategoryCombo();
-
-        // 템플릿 목록 로드 (중복 제거를 위해 ID 체크)
-        List<EmailTemplate> templates = templateManager.getAllTemplates();
-        java.util.Set<Long> addedIds = new java.util.HashSet<>();
-
-        for (EmailTemplate template : templates) {
-            // 이미 추가된 템플릿인지 확인
-            if (!addedIds.contains(template.getId())) {
-                addedIds.add(template.getId());
-                tableModel.addRow(new Object[]{
-                        template.getTitle(),
-                        template.getCategory(),
-                        template.isFavorite(),
-                        template.isFavorite() ? "★" : "☆"
-                });
-            }
-        }
+        filterTemplates(); // [수정] 필터링 메소드를 직접 호출하여 UI를 일관되게 업데이트
     }
 
     private void updateCategoryCombo() {
         String selected = (String) categoryCombo.getSelectedItem();
+
+        // [수정] 리스너를 잠시 제거하여 불필요한 이벤트 방지
+        ActionListener listener = categoryCombo.getActionListeners().length > 0 ? categoryCombo.getActionListeners()[0] : null;
+        if (listener != null) {
+            categoryCombo.removeActionListener(listener);
+        }
+
         categoryCombo.removeAllItems();
         categoryCombo.addItem("전체");
 
@@ -388,6 +378,11 @@ public class MainFrame extends JFrame {
 
         if (selected != null) {
             categoryCombo.setSelectedItem(selected);
+        }
+
+        // [수정] 리스너를 다시 추가
+        if (listener != null) {
+            categoryCombo.addActionListener(listener);
         }
     }
 
@@ -402,7 +397,7 @@ public class MainFrame extends JFrame {
                             t.getTitle().toLowerCase().contains(searchText) ||
                             t.getContent().toLowerCase().contains(searchText);
 
-                    boolean matchesCategory = "전체".equals(selectedCategory) ||
+                    boolean matchesCategory = selectedCategory == null || "전체".equals(selectedCategory) ||
                             t.getCategory().equals(selectedCategory);
 
                     boolean matchesFavorite = !onlyFavorites || t.isFavorite();
@@ -411,37 +406,30 @@ public class MainFrame extends JFrame {
                 })
                 .collect(Collectors.toList());
 
-        // 테이블 업데이트 (중복 제거)
         tableModel.setRowCount(0);
-        java.util.Set<Long> addedIds = new java.util.HashSet<>();
 
         for (EmailTemplate template : filtered) {
-            if (!addedIds.contains(template.getId())) {
-                addedIds.add(template.getId());
-                tableModel.addRow(new Object[]{
-                        template.getTitle(),
-                        template.getCategory(),
-                        template.isFavorite(),
-                        template.isFavorite() ? "★" : "☆"
-                });
-            }
+            tableModel.addRow(new Object[]{
+                    template.getTitle(),
+                    template.getCategory(),
+                    template.isFavorite(),
+                    template.isFavorite() ? "★" : "☆"
+            });
         }
     }
 
     private void showTemplateDialog(EmailTemplate template) {
-        // 중복 호출 방지를 위한 플래그
         if (isDialogOpen) return;
         isDialogOpen = true;
 
         TemplateDialog dialog = new TemplateDialog(this, template, templateManager);
-        dialog.setModal(true);
 
-        // WindowListener를 추가하여 다이얼로그가 닫힐 때만 새로고침
+        // [수정] WindowListener에서 loadTemplates() 호출 제거
         dialog.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosed(java.awt.event.WindowEvent e) {
                 isDialogOpen = false;
-                SwingUtilities.invokeLater(() -> loadTemplates());
+                // onTemplatesChanged 리스너가 새로고침을 처리하므로 여기서는 아무것도 하지 않음
             }
         });
 
@@ -485,7 +473,7 @@ public class MainFrame extends JFrame {
 
                 if (result == JOptionPane.YES_OPTION) {
                     templateManager.deleteTemplate(template.getId());
-                    loadTemplates();
+                    // onTemplatesChanged가 호출되어 테이블이 자동으로 새로고침됨
                 }
             }
         } else {
@@ -549,15 +537,9 @@ public class MainFrame extends JFrame {
         for (Component comp : container.getComponents()) {
             if (comp instanceof JPanel) {
                 comp.setBackground(DARK_BG);
-                ((JPanel) comp).setBorder(BorderFactory.createTitledBorder(
-                        BorderFactory.createLineBorder(DARK_BORDER),
-                        ((JPanel) comp).getBorder() instanceof javax.swing.border.TitledBorder ?
-                                ((javax.swing.border.TitledBorder) ((JPanel) comp).getBorder()).getTitle() : "",
-                        javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
-                        javax.swing.border.TitledBorder.DEFAULT_POSITION,
-                        new Font("맑은 고딕", Font.PLAIN, 12),
-                        DARK_TEXT
-                ));
+                if (((JPanel) comp).getBorder() instanceof TitledBorder) {
+                    ((TitledBorder) ((JPanel) comp).getBorder()).setTitleColor(DARK_TEXT);
+                }
             } else if (comp instanceof JLabel) {
                 comp.setForeground(DARK_TEXT);
             } else if (comp instanceof JTextField) {
@@ -571,7 +553,6 @@ public class MainFrame extends JFrame {
                 comp.setBackground(DARK_BG);
                 comp.setForeground(DARK_TEXT);
             } else if (comp instanceof JButton && !comp.equals(darkModeButton)) {
-                // 스타일 버튼이 아닌 일반 버튼
                 if (comp.getParent() instanceof JPanel &&
                         ((JButton) comp).getText() != null &&
                         !((JButton) comp).getText().matches("[★☆]")) {
@@ -590,11 +571,9 @@ public class MainFrame extends JFrame {
         for (Component comp : container.getComponents()) {
             if (comp instanceof JPanel) {
                 comp.setBackground(Color.WHITE);
-                ((JPanel) comp).setBorder(BorderFactory.createTitledBorder(
-                        BorderFactory.createLineBorder(Color.GRAY),
-                        ((JPanel) comp).getBorder() instanceof javax.swing.border.TitledBorder ?
-                                ((javax.swing.border.TitledBorder) ((JPanel) comp).getBorder()).getTitle() : ""
-                ));
+                if (((JPanel) comp).getBorder() instanceof TitledBorder) {
+                    ((TitledBorder) ((JPanel) comp).getBorder()).setTitleColor(Color.BLACK);
+                }
             } else if (comp instanceof JLabel) {
                 comp.setForeground(Color.BLACK);
             } else if (comp instanceof JTextField) {
@@ -608,7 +587,6 @@ public class MainFrame extends JFrame {
                 comp.setBackground(Color.WHITE);
                 comp.setForeground(Color.BLACK);
             } else if (comp instanceof JButton && !comp.equals(darkModeButton)) {
-                // 스타일 버튼이 아닌 일반 버튼
                 if (comp.getParent() instanceof JPanel &&
                         ((JButton) comp).getText() != null &&
                         !((JButton) comp).getText().matches("[★☆]")) {
@@ -641,9 +619,9 @@ public class MainFrame extends JFrame {
         if (settingsFile.exists()) {
             try (FileInputStream in = new FileInputStream(settingsFile)) {
                 props.load(in);
-                isDarkMode = Boolean.parseBoolean(props.getProperty("darkMode", "false"));
+                this.isDarkMode = Boolean.parseBoolean(props.getProperty("darkMode", "false"));
 
-                if (isDarkMode) {
+                if (this.isDarkMode) {
                     darkModeButton.setText("☀️");
                     applyTheme();
                 }
